@@ -53,6 +53,13 @@ static inline void gicc_init()
     MSR(ICC_IGRPEN1_EL1, ICC_IGRPEN_EL1_ENB_BIT);
 }
 
+void gic_cpu_reset() {
+    MSR(ICC_PMR_EL1, 0);
+    MSR(ICC_CTLR_EL1, 0);
+    MSR(ICC_SRE_EL2, 0);
+    ISB();
+}
+
 static inline void gicr_init()
 {
     gicr[cpu.id].ICENABLER0 = -1;
@@ -112,6 +119,18 @@ void gic_map_mmio()
     size_t gicr_size = NUM_PAGES(sizeof(struct gicr_hw)) * platform.cpu_num;
     gicr = (struct gicr_hw *)mem_alloc_vpage(&cpu.as, SEC_HYP_GLOBAL, NULL_VA, gicr_size);
     mem_map_dev(&cpu.as, (vaddr_t)gicr, platform.arch.gic.gicr_addr, gicr_size);
+}
+
+uint32_t gicc_iar() {
+    return MRS(ICC_IAR1_EL1);
+}
+
+void gicc_eoir(uint32_t eoir) {
+    MSR(ICC_EOIR1_EL1, eoir);
+}
+
+void gicc_dir(uint32_t dir) {
+    MSR(ICC_DIR_EL1, dir);
 }
 
 void gicr_set_prio(irqid_t int_id, uint8_t prio, cpuid_t gicr_id)
