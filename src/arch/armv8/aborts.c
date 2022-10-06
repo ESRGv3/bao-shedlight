@@ -97,6 +97,7 @@ void smc64_handler(uint64_t iss, uint64_t far, uint64_t il)
     cpu.vcpu->regs->elr_el2 += pc_step;
 }
 
+extern uint64_t sgi_time;
 void hvc64_handler(uint64_t iss, uint64_t far, uint64_t il)
 {
     uint64_t hvc_fid = cpu.vcpu->regs->x[0];
@@ -108,7 +109,10 @@ void hvc64_handler(uint64_t iss, uint64_t far, uint64_t il)
     switch(hvc_fid){
         case HC_IPC:
             ret = ipc_hypercall(x1, x2, x3);
-        break;
+            break;
+        case 43:
+            ret = sgi_time;
+            break;
     }
 
     vcpu_writereg(cpu.vcpu, 0, ret);
