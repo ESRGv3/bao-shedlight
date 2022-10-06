@@ -61,6 +61,7 @@ cpumap_t vgicd_get_trgt(struct vcpu *vcpu, struct vgic_int *interrupt)
     }
 }
 
+uint64_t sgi_time;
 void vgicd_emul_sgiregs_access(struct emul_access *acc,
                                struct vgic_reg_handler_info *handlers,
                                bool gicr_access, vcpuid_t vgicr_id)
@@ -87,6 +88,7 @@ void vgicd_emul_sgiregs_access(struct emul_access *acc,
                     return;
             }
 
+            sgi_time = MRS(CNTPCT_EL0);
             vgic_send_sgi_msg(cpu.vcpu, trgtlist, int_id);
         }
 
