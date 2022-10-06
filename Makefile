@@ -100,6 +100,9 @@ builtin-config-obj:=$(builtin_build_dir)/$(CONFIG).o
 objs-y+=$(builtin-config-obj)
 endif
 
+c_sources:=$(wildcard $(patsubst %.o,%.c, $(objs-y)))
+asm_sources:=$(wildcard $(patsubst %.o,%.S, $(objs-y)))
+
 deps+=$(patsubst %.o,%.d,$(objs-y))
 objs-y:=$(patsubst $(src_dir)%, $(build_dir)%, $(objs-y))
 
@@ -206,6 +209,11 @@ override CPPFLAGS+=-DCONFIG_BIN=$(CONFIG_BIN)
 builtin-config-src:=$(core_dir)/builtin-config.S
 $(builtin-config-obj): $(builtin-config-src) $(CONFIG_BIN)
 endif
+
+.PHONY: cloc
+cloc: $(c_sources) $(asm_sources) $(deps)
+	@cloc --by-file-by-lang  $(c_sources) $(asm_sources) $$(cat $(deps) | grep -o "$(src_dir)/\S*\.h" | sort | uniq)
+# sloccount $(c_sources) $(asm_sources) $$(cat $(deps) | grep -o "$(src_dir)/\S*\.h" | sort | uniq)
 
 #Generate directories for object, dependency and generated files
 
