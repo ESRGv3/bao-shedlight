@@ -24,6 +24,8 @@
 #include <platform.h>
 #include <vmm.h>
 
+uint64_t boot_time __attribute__((section(".data")));
+
 void init(cpuid_t cpu_id, paddr_t load_addr, paddr_t config_addr)
 {
     /**
@@ -38,6 +40,7 @@ void init(cpuid_t cpu_id, paddr_t load_addr, paddr_t config_addr)
     if (cpu.id == CPU_MASTER) {
         console_init();
         printk("Bao Hypervisor\n\r");
+        printk("boottime-hyp %ld\n", boot_time);
     }
 
     interrupts_init();

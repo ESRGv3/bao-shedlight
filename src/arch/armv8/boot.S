@@ -57,6 +57,10 @@ _reset_handler:
 	 * Register x18 contains the size of the allocated physical memory between
 	 * the loadable sections of the image and the non-loadable
 	 */
+    
+    mrs x1, CNTPCT_EL0
+    adr x2, boot_time
+    str x1, [x2]
 
 	mov x2, x0
 	mrs  x0, MPIDR_EL1
