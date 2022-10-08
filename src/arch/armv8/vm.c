@@ -19,9 +19,27 @@
 #include <fences.h>
 #include <arch/tlb.h>
 #include <string.h>
+#include <arch/sdei.h>
+
+extern void sdei_ipi_handler();
 
 void vm_arch_init(struct vm* vm, const struct vm_config* config)
-{
+{   
+    if(config->direct_injection) {
+        if(sdei_version() != SDEI_NOT_SUPPORTED) {
+            int32_t evt = platform.arch.sdei_ipi_event;
+            sdei_event_register(evt, (uint64_t) sdei_ipi_handler,
+                (uint64_t) &cpu.arch.sdei_evt_is_active, 
+                SDEI_F_EP_ABS | SDEI_F_RM_PE, cpu.arch.mpidr);
+            sdei_event_enable(evt);
+            sdei_pe_unmask();
+            cpu.interface.arch.uses_sdei_ipi = true;
+        } else {
+            WARNING("Direct interrupt inejction enabled," 
+                " but SDEI is not available.");
+        }
+    }
+
     if (vm->master == cpu.id) {
         vgic_init(vm, &config->platform.arch.gic);
     }
@@ -44,6 +62,11 @@ static unsigned long vm_cpuid_to_mpidr(struct vm* vm, vcpuid_t cpuid)
     return platform_arch_cpuid_to_mpdir(&vm->config->platform, cpuid);
 }
 
+void vcpu_arch_reset_vttbr(struct vcpu* vcpu) {
+    if(vcpu == NULL) return;
+    MSR(VTTBR_EL2, vcpu->vm->arch.vttbr);
+}
+
 void vcpu_arch_init(struct vcpu* vcpu, struct vm* vm)
 {
     vcpu->arch.vmpidr = vm_cpuid_to_mpidr(vm, vcpu->id);
@@ -53,11 +76,17 @@ void vcpu_arch_init(struct vcpu* vcpu, struct vm* vm)
 
     paddr_t root_pt_pa;
     mem_translate(&cpu.as, (vaddr_t)vm->as.pt.root, &root_pt_pa);
-    MSR(VTTBR_EL2, ((vm->id << VTTBR_VMID_OFF) & VTTBR_VMID_MSK) |
-                       (root_pt_pa & ~VTTBR_VMID_MSK));
+    vm->arch.vttbr = ((vm->id << VTTBR_VMID_OFF) & VTTBR_VMID_MSK) |
+                        (root_pt_pa & ~VTTBR_VMID_MSK);
+    MSR(VTTBR_EL2, vm->arch.vttbr);
 
     ISB();  // make sure vmid is commited befor tlbi
     tlb_vm_inv_all(vm->id);
+
+    if (vm->config->direct_injection) {
+        gic_cpu_reset();
+        vcpu_arch_enable_direct_injection(cpu.vcpu);
+    }
 
     vgic_cpu_init(vcpu);
 }

@@ -26,6 +26,7 @@ struct vm_arch {
     vaddr_t vgicr_addr;
     struct list vgic_spilled;
     spinlock_t vgic_spilled_lock;
+    unsigned long vttbr;
 };
 
 struct vcpu_arch {
@@ -44,6 +45,7 @@ struct arch_regs {
 
 struct vcpu* vm_get_vcpu_by_mpidr(struct vm* vm, unsigned long mpidr);
 void vcpu_arch_entry();
+void vcpu_arch_reset_vttbr(struct vcpu* vcpu);
 
 typedef struct vcpu vcpu_t;
 
@@ -55,6 +57,13 @@ static inline void vcpu_arch_inject_hw_irq(vcpu_t* vcpu, uint64_t id)
 static inline void vcpu_arch_inject_irq(vcpu_t* vcpu, uint64_t id)
 {
     vgic_inject(vcpu, id, 0);
+}
+
+static inline void vcpu_arch_enable_direct_injection(vcpu_t *vcpu) {
+    MSR(HCR_EL2, MRS(HCR_EL2) & ~HCR_IMO_BIT);
+}
+static inline void vcpu_arch_disable_direct_injection(vcpu_t *vcpu) {
+    MSR(HCR_EL2, MRS(HCR_EL2) | HCR_IMO_BIT);
 }
 
 #endif /* __ARCH_VM_H__ */
