@@ -133,6 +133,10 @@ gens+=$(asm_defs_hdr)
 override CPPFLAGS+=$(addprefix -I, $(inc_dirs)) $(arch-cppflags) $(platform-cppflags)
 vpath:.=CPPFLAGS
 
+ifneq ($(NO_SUPERPAGES),)
+override CPPFLAGS+=-DNO_SUPERPAGES
+endif
+
 ifeq ($(DEBUG), y)
 	debug_flags:=-g
 endif
